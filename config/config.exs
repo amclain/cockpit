@@ -25,4 +25,5 @@ config :logger, backends: [RingLogger]
 
 if Mix.target() != :host do
   import_config "target.exs"
+  import_config "cockpit.exs"
 end

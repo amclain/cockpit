@@ -48,7 +48,7 @@ config :vintage_net,
        type: VintageNetEthernet,
        ipv4: %{method: :dhcp}
      }},
-    {"wlan0", %{type: VintageNetWiFi}}
+    # {"wlan0", %{type: VintageNetWiFi}}
   ]
 
 config :mdns_lite,

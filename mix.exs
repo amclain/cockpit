@@ -50,7 +50,8 @@ defmodule Cockpit.MixProject do
       {:circuits_gpio, "~> 0.4.5", targets: @all_targets},
 
       # Dependencies for specific targets
-      {:nerves_system_bbb, "~> 2.6", runtime: false, targets: :bbb},
+      # {:nerves_system_bbb, "~> 2.6", runtime: false, targets: :bbb},
+      {:nerves_system_bbb_cockpit, path: "../nerves_system_bbb_cockpit", runtime: false, targets: :bbb},
     ]
   end
 

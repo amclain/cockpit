@@ -32,7 +32,7 @@ defmodule Cockpit.Application do
     [
       # Children for all targets except host
       # Starts a worker by calling: Cockpit.Worker.start_link(arg)
-      # {Cockpit.Worker, arg},
+      {Cockpit, nil},
     ]
   end
 
