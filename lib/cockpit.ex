@@ -6,6 +6,7 @@ defmodule Cockpit do
 
   defmodule State do
     defstruct [
+      :adc_pids,
       :dcs_hub_host,
       :dcs_hub_port,
       :gpio_pids,
@@ -46,7 +47,16 @@ defmodule Cockpit do
         {pin, pid}
       end)
 
+    adc_pids =
+      [0]
+      |> Enum.map(fn adc_number ->
+        {:ok, pid} = Cockpit.ADC.start_link(adc_number, self())
+
+        {adc_number, pid}
+      end)
+
     state = %State{
+      adc_pids:     adc_pids,
       dcs_hub_host: dcs_hub_host,
       dcs_hub_port: dcs_hub_port,
       gpio_pids:    gpio_pids,
@@ -103,6 +113,22 @@ defmodule Cockpit do
   def handle_info({:circuits_gpio, 22, _, value}, state),
     do: set_gpio_control("SASP_TO_TRIM", value, state)
 
+  def handle_info({:cockpit_adc, 0, value}, state) do
+    # Calibration parameters
+    # min    = 2
+    center = 2043
+    # max    = 4094
+    # ----------------------
+
+    offset           = 2048 - center
+    calibrated_value = value + offset
+    scaled_value     = value * 16
+
+    send_parameter("SASP_YAW_TRIM", scaled_value, state, skip_log: true)
+
+    {:noreply, state}
+  end
+
   # Emergency Panel
   def handle_info({:circuits_gpio, 63, _, value}, state),
     do: set_gpio_control("EFCP_SPDBK_EMER_RETR", value, state)
@@ -158,10 +184,13 @@ defmodule Cockpit do
     {:noreply, state}
   end
 
-  defp send_parameter(parameter, value, state) do
+  defp send_parameter(parameter, value, state, opts \\ []) do
+    skip_log = opts[:skip_log]
+
     message = "#{parameter} #{value}"
 
-    Logger.info message
+    unless skip_log,
+      do: Logger.info message
 
     packet = message <> "\n"
 
