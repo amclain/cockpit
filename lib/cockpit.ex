@@ -9,8 +9,9 @@ defmodule Cockpit do
       :adc_pids,
       :dcs_hub_host,
       :dcs_hub_port,
-      :gpio_pids,
+      :gpios,
       :socket,
+      :scan_timer_ref,
     ]
   end
 
@@ -35,7 +36,7 @@ defmodule Cockpit do
 
     {:ok, socket} = :gen_udp.open(0)
 
-    gpio_pids =
+    gpios =
       [
         38, 39, 34, 35, 66, 67, 69, 68, 45, 44,
         23, 26, 47, 46, 27, 65, 22, 63, 62, 37,
@@ -44,9 +45,9 @@ defmodule Cockpit do
       ]
       |> Enum.map(fn pin ->
         {:ok, pid} = Circuits.GPIO.open(pin, :input)
-        :ok        = Circuits.GPIO.set_interrupts(pid, :both)
+        value      = Circuits.GPIO.read(pid)
 
-        {pin, pid}
+        {pin, pid, value}
       end)
 
     adc_pids =
@@ -57,15 +58,41 @@ defmodule Cockpit do
         {adc_number, pid}
       end)
 
+    scan_timer_ref = Process.send_after(self(), :scan_timer, 20)
+
     state = %State{
-      adc_pids:     adc_pids,
-      dcs_hub_host: dcs_hub_host,
-      dcs_hub_port: dcs_hub_port,
-      gpio_pids:    gpio_pids,
-      socket:       socket,
+      adc_pids:       adc_pids,
+      dcs_hub_host:   dcs_hub_host,
+      dcs_hub_port:   dcs_hub_port,
+      gpios:          gpios,
+      socket:         socket,
+      scan_timer_ref: scan_timer_ref,
     }
 
     {:ok, state}
+  end
+
+  def handle_info(:scan_timer, state) do
+    gpios =
+      state.gpios
+      |> Enum.map(fn {pin, pid, last_value} ->
+        value = Circuits.GPIO.read(pid)
+
+        if value != last_value,
+          do: send(self(), {:circuits_gpio, pin, 0, value})
+
+        {pin, pid, value}
+      end)
+
+    scan_timer_ref = Process.send_after(self(), :scan_timer, 20)
+
+    state = %State{
+      state |
+      gpios:          gpios,
+      scan_timer_ref: scan_timer_ref,
+    }
+
+    {:noreply, state}
   end
 
   # AHCP
