@@ -106,12 +106,14 @@ defmodule Cockpit do
     value = bxor(raw_value, 1) + 1
 
     send_parameter("AHCP_MASTER_ARM", value, state)
+    send_parameter("WEAPONS_MASTER_ARM", value - 1, state) # Ka-50
 
     {:noreply, state}
   end
 
   def handle_info({:circuits_gpio, 88, _, raw_value}, state) do
     send_parameter("AHCP_GUNPAC", raw_value, state)
+    send_parameter("WEAPONS_AUTOTRACK_GUNSIGHT", raw_value, state) # Ka-50
 
     {:noreply, state}
   end
@@ -134,15 +136,19 @@ defmodule Cockpit do
     value = bxor(raw_value, 1) + 1
 
     send_parameter("AHCP_LASER_ARM", value, state)
+    send_parameter("LASER_STANDBY", value - 1, state) # Ka-50
 
     {:noreply, state}
   end
 
-  def handle_info({:circuits_gpio, 78, _, value}, state),
-    do: set_gpio_control("AHCP_TGP", value, state)
+  def handle_info({:circuits_gpio, 78, _, value}, state) do
+    set_gpio_control("AHCP_TGP", value, state)
+    set_gpio_control("K041_POWER", value, state) # Ka-50
+  end
 
   def handle_info({:circuits_gpio, 76, _, raw_value}, state) do
     send_parameter("AHCP_ALT_SCE", raw_value, state)
+    send_parameter("AP_BARO_RALT", bxor(raw_value, 1) + 1, state) # Ka-50
 
     {:noreply, state}
   end
@@ -151,24 +157,34 @@ defmodule Cockpit do
     value = bxor(raw_value, 1) + 1
 
     send_parameter("AHCP_ALT_SCE", value, state)
+    send_parameter("AP_BARO_RALT", raw_value, state) # Ka-50
 
     {:noreply, state}
   end
 
-  def handle_info({:circuits_gpio, 74, _, value}, state),
-    do: set_gpio_control("AHCP_HUD_DAYNIGHT", value, state)
+  def handle_info({:circuits_gpio, 74, _, value}, state) do
+    set_gpio_control("AHCP_HUD_DAYNIGHT", value, state)
+    set_gpio_control("HUD_MODE", value, state) # Ka-50
+  end
 
-  def handle_info({:circuits_gpio, 79, _, value}, state),
-    do: set_gpio_control("AHCP_HUD_MODE", value, state)
+  def handle_info({:circuits_gpio, 79, _, value}, state) do
+    set_gpio_control("AHCP_HUD_MODE", value, state)
+    set_gpio_control("WEAPONS_CANNON_ROUND", value, state) # Ka-50
+  end
 
-  def handle_info({:circuits_gpio, 75, _, value}, state),
-    do: set_gpio_control("AHCP_CICU", value, state)
+  def handle_info({:circuits_gpio, 75, _, value}, state) do
+    set_gpio_control("AHCP_CICU", value, state)
+    set_gpio_control("WEAPONS_MANUAL_AUTO", value, state) # Ka-50
+  end
 
-  def handle_info({:circuits_gpio, 80, _, value}, state),
-    do: set_gpio_control("AHCP_JTRS", value, state)
+  def handle_info({:circuits_gpio, 80, _, value}, state) do
+    set_gpio_control("AHCP_JTRS", value, state)
+    set_gpio_control("WEAPONS_CANNON_RATE", value, state) # Ka-50
+  end
 
   def handle_info({:circuits_gpio, 81, _, raw_value}, state) do
     send_parameter("AHCP_IFFCC", raw_value, state)
+    send_parameter("WEAPONS_CANNON_BURST", raw_value, state) # Ka-50
 
     {:noreply, state}
   end
@@ -177,6 +193,7 @@ defmodule Cockpit do
     value = bxor(raw_value, 1) + 1
 
     send_parameter("AHCP_IFFCC", value, state)
+    send_parameter("WEAPONS_CANNON_BURST", value, state) # Ka-50
 
     {:noreply, state}
   end
@@ -188,17 +205,35 @@ defmodule Cockpit do
   def handle_info({:circuits_gpio, 39, _, value}, state),
     do: set_gpio_control("FSCP_EXT_TANKS_FUS", value, state)
 
-  def handle_info({:circuits_gpio, 34, _, value}, state),
-    do: set_gpio_control("FSCP_RCVR_LEVER", value, state)
+  def handle_info({:circuits_gpio, 34, _, value}, state) do
+    set_gpio_control("FSCP_RCVR_LEVER", value, state)
+    set_gpio_control("LASER_MODE", bxor(value, 1), state) # Ka-50
+  end
 
-  def handle_info({:circuits_gpio, 35, _, value}, state),
-    do: set_gpio_control("EXT_STORES_JETTISON", value, state)
+  def handle_info({:circuits_gpio, 35, _, value}, state) do
+    set_gpio_control("EXT_STORES_JETTISON", value, state)
+    set_gpio_control("LASER_RESET", value, state) # Ka-50
+  end
 
   def handle_info({:circuits_gpio, 66, _, value}, state),
     do: set_gpio_control("FSCP_TK_GATE", value, state)
 
-  def handle_info({:circuits_gpio, 67, _, value}, state),
-    do: set_gpio_control("FSCP_CROSSFEED", value, state)
+  def handle_info({:circuits_gpio, 67, _, raw_value}, state) do
+    set_gpio_control("FSCP_CROSSFEED", raw_value, state)
+
+    # Ka-50
+    case raw_value do
+      0 ->
+        send_parameter("FUEL_XFEED_VLV_COVER", 1, state)
+        set_gpio_control("FUEL_XFEED_VLV", raw_value, state)
+
+      _ ->
+        set_gpio_control("FUEL_XFEED_VLV", raw_value, state)
+        send_parameter("FUEL_XFEED_VLV_COVER", 0, state)
+    end
+
+    {:noreply, state}
+  end
 
   def handle_info({:circuits_gpio, 69, _, value}, state),
     do: set_gpio_control("FSCP_BOOST_WING_L", value, state)
@@ -213,20 +248,30 @@ defmodule Cockpit do
     do: set_gpio_control("FSCP_BOOST_MAIN_R", value, state)
 
   # SAS Panel
-  def handle_info({:circuits_gpio, 23, _, value}, state),
-    do: set_gpio_control("SASP_YAW_SAS_L", value, state)
+  def handle_info({:circuits_gpio, 23, _, value}, state) do
+    send_parameter("OP_NAV_LIGHTS", bxor(value, 1) * 3, state) # Ka-50
+    set_gpio_control("SASP_YAW_SAS_L", value, state)
+  end
 
-  def handle_info({:circuits_gpio, 26, _, value}, state),
-    do: set_gpio_control("SASP_YAW_SAS_R", value, state)
+  def handle_info({:circuits_gpio, 26, _, value}, state) do
+    set_gpio_control("SASP_YAW_SAS_R", value, state)
+    set_gpio_control("LIGHT_BEACON", value, state) # Ka-50
+  end
 
-  def handle_info({:circuits_gpio, 47, _, value}, state),
-    do: set_gpio_control("SASP_PITCH_SAS_L", value, state)
+  def handle_info({:circuits_gpio, 47, _, value}, state) do
+    set_gpio_control("SASP_PITCH_SAS_L", value, state)
+    set_gpio_control("LIGHT_ROTOR_TIP", value, state) # Ka-50
+  end
 
-  def handle_info({:circuits_gpio, 46, _, value}, state),
-    do: set_gpio_control("SASP_PITCH_SAS_R", value, state)
+  def handle_info({:circuits_gpio, 46, _, value}, state) do
+    set_gpio_control("SASP_PITCH_SAS_R", value, state)
+    set_gpio_control("LIGHT_COCKPIT_NVG", value, state) # Ka-50
+  end
 
-  def handle_info({:circuits_gpio, 22, _, value}, state),
-    do: set_gpio_control("SASP_TO_TRIM", value, state)
+  def handle_info({:circuits_gpio, 22, _, value}, state) do
+    set_gpio_control("SASP_TO_TRIM", value, state)
+    set_gpio_control("LWR_RESET", value, state) # Ka-50
+  end
 
   def handle_info({:cockpit_adc, 0, value}, state) do
     # Calibration parameters
@@ -248,8 +293,10 @@ defmodule Cockpit do
   def handle_info({:circuits_gpio, 63, _, value}, state),
     do: set_gpio_control("EFCP_SPDBK_EMER_RETR", value, state)
 
-  def handle_info({:circuits_gpio, 62, _, value}, state),
-    do: set_gpio_control("EFCP_TRIM_OVERRIDE", value, state)
+  def handle_info({:circuits_gpio, 62, _, value}, state) do
+    set_gpio_control("EFCP_TRIM_OVERRIDE", value, state)
+    set_gpio_control("LIGHT_CPT_INT", bxor(value, 1), state) # Ka-50
+  end
 
   def handle_info({:circuits_gpio, 37, _, raw_value}, state) do
     send_parameter("EFCP_AILERON_EMER_DISENGAGE", raw_value, state)
