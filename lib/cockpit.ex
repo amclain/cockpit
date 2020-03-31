@@ -192,7 +192,7 @@ defmodule Cockpit do
     do: set_gpio_control("FSCP_RCVR_LEVER", value, state)
 
   def handle_info({:circuits_gpio, 35, _, value}, state),
-    do: set_gpio_control("FSCP_LINE_CHECK", value, state)
+    do: set_gpio_control("EXT_STORES_JETTISON", value, state)
 
   def handle_info({:circuits_gpio, 66, _, value}, state),
     do: set_gpio_control("FSCP_TK_GATE", value, state)
