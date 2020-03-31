@@ -37,8 +37,10 @@ defmodule Cockpit do
 
     gpio_pids =
       [
-        38, 39, 34, 35, 66, 67, 69, 68, 45, 44, 23, 26, 47, 46, 27, 65, 22, 63,
-        62, 37, 36, 33, 32, 61, 86
+        38, 39, 34, 35, 66, 67, 69, 68, 45, 44,
+        23, 26, 47, 46, 27, 65, 22, 63, 62, 37,
+        36, 33, 32, 61, 86, 88, 87, 89, 10, 11,
+         9, 81,  8, 80, 78, 79, 76, 77, 74, 75,
       ]
       |> Enum.map(fn pin ->
         {:ok, pid} = Circuits.GPIO.open(pin, :input)
@@ -64,6 +66,92 @@ defmodule Cockpit do
     }
 
     {:ok, state}
+  end
+
+  # AHCP
+  def handle_info({:circuits_gpio, 89, _, raw_value}, state) do
+    send_parameter("AHCP_MASTER_ARM", raw_value, state)
+
+    {:noreply, state}
+  end
+
+  def handle_info({:circuits_gpio, 10, _, raw_value}, state) do
+    value = bxor(raw_value, 1) + 1
+
+    send_parameter("AHCP_MASTER_ARM", value, state)
+
+    {:noreply, state}
+  end
+
+  def handle_info({:circuits_gpio, 88, _, raw_value}, state) do
+    send_parameter("AHCP_GUNPAC", raw_value, state)
+
+    {:noreply, state}
+  end
+
+  def handle_info({:circuits_gpio, 87, _, raw_value}, state) do
+    value = bxor(raw_value, 1) + 1
+
+    send_parameter("AHCP_GUNPAC", value, state)
+
+    {:noreply, state}
+  end
+
+  def handle_info({:circuits_gpio, 11, _, raw_value}, state) do
+    send_parameter("AHCP_LASER_ARM", raw_value, state)
+
+    {:noreply, state}
+  end
+
+  def handle_info({:circuits_gpio, 9, _, raw_value}, state) do
+    value = bxor(raw_value, 1) + 1
+
+    send_parameter("AHCP_LASER_ARM", value, state)
+
+    {:noreply, state}
+  end
+
+  def handle_info({:circuits_gpio, 78, _, value}, state),
+    do: set_gpio_control("AHCP_TGP", value, state)
+
+  def handle_info({:circuits_gpio, 76, _, raw_value}, state) do
+    send_parameter("AHCP_ALT_SCE", raw_value, state)
+
+    {:noreply, state}
+  end
+
+  def handle_info({:circuits_gpio, 77, _, raw_value}, state) do
+    value = bxor(raw_value, 1) + 1
+
+    send_parameter("AHCP_ALT_SCE", value, state)
+
+    {:noreply, state}
+  end
+
+  def handle_info({:circuits_gpio, 74, _, value}, state),
+    do: set_gpio_control("AHCP_HUD_DAYNIGHT", value, state)
+
+  def handle_info({:circuits_gpio, 79, _, value}, state),
+    do: set_gpio_control("AHCP_HUD_MODE", value, state)
+
+  def handle_info({:circuits_gpio, 75, _, value}, state),
+    do: set_gpio_control("AHCP_CICU", value, state)
+
+  def handle_info({:circuits_gpio, 80, _, value}, state),
+    do: set_gpio_control("AHCP_JTRS", value, state)
+
+  def handle_info({:circuits_gpio, 81, _, raw_value}, state) do
+    send_parameter("AHCP_IFFCC", raw_value, state)
+
+    {:noreply, state}
+  end
+
+  def handle_info({:circuits_gpio, 8, _, raw_value}, state) do
+    value = bxor(raw_value, 1) + 1
+
+    send_parameter("AHCP_IFFCC", value, state)
+
+    {:noreply, state}
   end
 
   # Fuel Panel
