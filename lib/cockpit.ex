@@ -362,16 +362,10 @@ defmodule Cockpit do
   defp configure_header_pinmux do
     # Configure port 8 GPIO pins
     3..46
-    |> Enum.each(fn pin ->
-      pin_name = pin |> Integer.to_string |> String.pad_leading(2, "0")
-      File.write("/sys/devices/platform/ocp/ocp:P8_#{pin_name}_pinmux/state", "gpio_pu")
-    end)
+    |> Enum.each(&ConfigPin.set(8, &1, :gpio_pu))
 
     # Configure port 9 GPIO pins
     [11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 41, 42]
-    |> Enum.each(fn pin ->
-      pin_name = pin |> Integer.to_string |> String.pad_leading(2, "0")
-      File.write("/sys/devices/platform/ocp/ocp:P9_#{pin_name}_pinmux/state", "gpio_pu")
-    end)
+    |> Enum.each(&ConfigPin.set(9, &1, :gpio_pu))
   end
 end

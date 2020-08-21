@@ -52,6 +52,7 @@ defmodule Cockpit.MixProject do
       # Dependencies for specific targets
       # {:nerves_system_bbb, "~> 2.6", runtime: false, targets: :bbb},
       {:nerves_system_bbb_cockpit, path: "../nerves_system_bbb_cockpit", runtime: false, targets: :bbb},
+      {:nerves_config_pin, github: "amclain/nerves_config_pin", ref: "d14a8be"},
     ]
   end
 
