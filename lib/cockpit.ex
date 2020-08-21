@@ -29,7 +29,7 @@ defmodule Cockpit do
     unless dcs_hub_uri.host,
       do: throw "dcs_hub_uri: invalid host"
 
-    configure_header_pinmux()
+    :ok = ConfigPin.set_from_file("/etc/pinmux")
 
     dcs_hub_host = dcs_hub_uri.host |> String.to_charlist
     dcs_hub_port = dcs_hub_uri.port || 7778
@@ -357,15 +357,5 @@ defmodule Cockpit do
     packet = message <> "\n"
 
     :gen_udp.send(state.socket, state.dcs_hub_host, state.dcs_hub_port, packet)
-  end
-
-  defp configure_header_pinmux do
-    # Configure port 8 GPIO pins
-    3..46
-    |> Enum.each(&ConfigPin.set(8, &1, :gpio_pu))
-
-    # Configure port 9 GPIO pins
-    [11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 41, 42]
-    |> Enum.each(&ConfigPin.set(9, &1, :gpio_pu))
   end
 end
